@@ -56,7 +56,7 @@ lonMax = max(bbox_1389["xmax"], bbox_1433["xmax"], bbox_current["xmax"])
 latMin = min(bbox_1389["ymin"], bbox_1433["ymin"], bbox_current["ymin"])
 latMax = max(bbox_1389["ymax"], bbox_1433["ymax"], bbox_current["ymax"])
 
-ext = st_bbox(raster::extent(lonMin - 2, lonMax + 2, latMin - 2, latMax + 2))
+ext = st_bbox(raster::extent(lonMin - 3, lonMax + 3, latMin - 3, latMax + 3))
 
 # Simplify
 currentChina = st_simplify(x = currentChina, dTolerance = 0.05)
@@ -69,7 +69,7 @@ mongolia = st_read(dsn = "~/owncloud/database/shapefiles/mongolia/", layer = "MN
 russia = st_read(dsn = "~/owncloud/database/shapefiles/russia/", layer = "gadm36_RUS_0")
 
 # Check crs shapefiles
-if (!check_crs(ming_1389, ming_1433, currentChina, bangladesh, bhutan, india, korea_north, korea_south, laos, myanmar, mongolia, nepal, russia, vietnam))
+if (!check_crs(ming_1389, ming_1433, currentChina, korea_north, korea_south, mongolia, russia))
 	stop("crs mismatch")
 
 # Crop
@@ -102,6 +102,31 @@ russia_centro = st_coordinates(st_centroid(russia))
 
 #### Plots
 jpeg("./MingDynasty.jpg", quality = 100, width = 1080, height = 1080)
+plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
+	xlab = "", ylab = "", bg = "transparent")
+## Borderlines
+plot(ming_1433, col = "#FF990044", border = 0, add = TRUE)
+plot(currentChina, col = NA, lwd = 4, add = TRUE)
+plot(korea_north, col = NA, lwd = 1, add = TRUE)
+plot(korea_south, col = NA, lwd = 1, add = TRUE)
+plot(mongolia, col = NA, lwd = 1, add = TRUE)
+plot(russia, col = NA, lwd = 1, add = TRUE)
+
+## Text
+points(116.383331, y = 39.916668, pch = 15)
+points(118.766670, y = 32.049999, pch = 15)
+text(116.383331, y = 39.916668, labels = "Beijing", pos = 2, cex = 2)
+text(118.766670, y = 32.049999, labels = "Nanjing", pos = 2, cex = 2)
+text(currentChina_centro[, "X"], currentChina_centro[, "Y"], labels = "China", cex = 2)
+text(korea_north_centro[, "X"], korea_north_centro[, "Y"], labels = "N. Korea", cex = 2, pos = 4, offset = 2)
+text(korea_south_centro[, "X"], korea_south_centro[, "Y"], labels = "S. Korea", cex = 2, pos = 4, offset = 2)
+text(mongolia_centro[, "X"], mongolia_centro[, "Y"], labels = "Mongolia", cex = 2)
+text(russia_centro[, "X"], russia_centro[, "Y"], labels = "Russia", cex = 2)
+legend("topleft", legend = c("Ming 1433", "Current borders"), col = c("#FF990044", "#000000"),
+	pch = c(15, NA), lwd = c(NA, 4), lty = c(NA, "solid"), pt.cex = 6, cex = 2, box.lty = 0)
+dev.off()
+
+pdf("./MingDynasty2.pdf", width = 12, height = 12)
 plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
 	xlab = "", ylab = "", bg = "transparent")
 ## Borderlines
