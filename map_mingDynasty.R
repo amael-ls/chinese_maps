@@ -29,14 +29,17 @@ check_crs = function(...)
 	
 	counter = 2
 
-	ref_crs = st_crs(shp_ls[[1]])
+	ref_crs = st_crs(shp_ls[[1]])$input
 	boolean = TRUE
 	while ((counter <= n) & (boolean))
 	{
-		boolean = st_crs(shp_ls[[counter]]) == ref_crs
+		boolean = st_crs(shp_ls[[counter]])$input == ref_crs
 		counter = counter + 1
 	}
-	return (boolean)
+	if (counter == n + 1)
+		return (list(boolean = boolean, counter = NULL, crs = NULL))
+
+	return (list(boolean = boolean, counter = counter, crs = st_crs(shp_ls[[counter]])$input))
 }
 
 #### Load data and keep geometry
@@ -69,8 +72,9 @@ mongolia = st_read(dsn = "~/owncloud/database/shapefiles/mongolia/", layer = "MN
 russia = st_read(dsn = "~/owncloud/database/shapefiles/russia/", layer = "gadm36_RUS_0")
 
 # Check crs shapefiles
-if (!check_crs(ming_1389, ming_1433, currentChina, korea_north, korea_south, mongolia, russia))
-	stop("crs mismatch")
+check = check_crs(ming_1389, ming_1433, currentChina, korea_north, korea_south, mongolia, russia)
+if (!check[["boolean"]])
+	stop(paste0("crs mismatch for argument ", check[["counter"]]))
 
 # Crop
 korea_north = st_crop(korea_north, ext)
@@ -79,10 +83,10 @@ mongolia = st_crop(mongolia, ext)
 russia = st_crop(russia, ext)
 
 # Simplify
-korea_north = st_simplify(x = korea_north, dTolerance = 0.05)
-korea_south = st_simplify(x = korea_south, dTolerance = 0.05)
-mongolia = st_simplify(x = mongolia, dTolerance = 0.05)
-russia = st_simplify(x = russia, dTolerance = 0.05)
+korea_north = st_simplify(x = korea_north, dTolerance = 0.015)
+korea_south = st_simplify(x = korea_south, dTolerance = 0.015)
+mongolia = st_simplify(x = mongolia, dTolerance = 0.015)
+russia = st_simplify(x = russia, dTolerance = 0.015)
 
 #### Polygons and centroids
 ming_1389 = st_union(st_geometry(ming_1389))
@@ -101,10 +105,14 @@ mongolia_centro = st_coordinates(st_centroid(mongolia))
 russia_centro = st_coordinates(st_centroid(russia))
 
 #### Plots
+## White background, jpeg
 jpeg("./MingDynasty.jpg", quality = 100, width = 1080, height = 1080)
+par(mar = c(5.1, 4.1, 6.1, 2.1))
 plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
-	xlab = "", ylab = "", bg = "transparent")
-## Borderlines
+	xlab = "https://worldmap.harvard.edu/data/geonode:_ming_crossed_kjs",
+	ylab = "", main = "Ming Dynasty (1368-1644)", cex.main = 4, cex.lab = 2)
+
+# Borderlines
 plot(ming_1433, col = "#FF990044", border = 0, add = TRUE)
 plot(currentChina, col = NA, lwd = 4, add = TRUE)
 plot(korea_north, col = NA, lwd = 1, add = TRUE)
@@ -112,7 +120,7 @@ plot(korea_south, col = NA, lwd = 1, add = TRUE)
 plot(mongolia, col = NA, lwd = 1, add = TRUE)
 plot(russia, col = NA, lwd = 1, add = TRUE)
 
-## Text
+# Text
 points(116.383331, y = 39.916668, pch = 15)
 points(118.766670, y = 32.049999, pch = 15)
 text(116.383331, y = 39.916668, labels = "Beijing", pos = 2, cex = 2)
@@ -126,10 +134,13 @@ legend("topleft", legend = c("Ming 1433", "Current borders"), col = c("#FF990044
 	pch = c(15, NA), lwd = c(NA, 4), lty = c(NA, "solid"), pt.cex = 6, cex = 2, box.lty = 0)
 dev.off()
 
-pdf("./MingDynasty2.pdf", width = 12, height = 12)
+## White background, pdf
+pdf("./MingDynasty.pdf", width = 12, height = 12)
+par(mar = c(5.1, 4.1, 6.1, 2.1))
 plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
-	xlab = "", ylab = "", bg = "transparent")
-## Borderlines
+	xlab = "https://worldmap.harvard.edu/data/geonode:_ming_crossed_kjs",
+	ylab = "", main = "Ming Dynasty (1368-1644)", cex.main = 4, cex.lab = 2)
+# Borderlines
 plot(ming_1433, col = "#FF990044", border = 0, add = TRUE)
 plot(currentChina, col = NA, lwd = 4, add = TRUE)
 plot(korea_north, col = NA, lwd = 1, add = TRUE)
@@ -137,7 +148,7 @@ plot(korea_south, col = NA, lwd = 1, add = TRUE)
 plot(mongolia, col = NA, lwd = 1, add = TRUE)
 plot(russia, col = NA, lwd = 1, add = TRUE)
 
-## Text
+# Text
 points(116.383331, y = 39.916668, pch = 15)
 points(118.766670, y = 32.049999, pch = 15)
 text(116.383331, y = 39.916668, labels = "Beijing", pos = 2, cex = 2)
@@ -149,4 +160,64 @@ text(mongolia_centro[, "X"], mongolia_centro[, "Y"], labels = "Mongolia", cex = 
 text(russia_centro[, "X"], russia_centro[, "Y"], labels = "Russia", cex = 2)
 legend("topleft", legend = c("Ming 1433", "Current borders"), col = c("#FF990044", "#000000"),
 	pch = c(15, NA), lwd = c(NA, 4), lty = c(NA, "solid"), pt.cex = 6, cex = 2, box.lty = 0)
+dev.off()
+
+## Low contrast, jpeg
+jpeg("./MingDynasty_lowContrast.jpg", quality = 100, width = 1080, height = 1080)
+par(mar = c(5.1, 4.1, 6.1, 2.1), bg = "#121212", col.main = "#EAEAEA", col.lab = "#EAEAEA")
+plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
+	xlab = "https://worldmap.harvard.edu/data/geonode:_ming_crossed_kjs",
+	ylab = "", main = "Ming Dynasty (1368-1644)", cex.main = 4, cex.lab = 2)
+
+# Borderlines
+plot(ming_1433, col = "#FDE4AA", border = 0, add = TRUE)
+plot(currentChina, col = NA, border = "#3056FF", lwd = 4, add = TRUE)
+plot(korea_north, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(korea_south, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(mongolia, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(russia, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+
+# Text
+points(116.383331, y = 39.916668, pch = 15)
+points(118.766670, y = 32.049999, pch = 15)
+text(116.383331, y = 39.916668, labels = "Beijing", pos = 2, cex = 2)
+text(118.766670, y = 32.049999, labels = "Nanjing", pos = 2, cex = 2)
+text(currentChina_centro[, "X"], currentChina_centro[, "Y"], labels = "China", cex = 2)
+text(korea_north_centro[, "X"], korea_north_centro[, "Y"], labels = "N. Korea", cex = 2, pos = 4, offset = 2, col = "#EAEAEA")
+text(korea_south_centro[, "X"], korea_south_centro[, "Y"], labels = "S. Korea", cex = 2, pos = 4, offset = 2, col = "#EAEAEA")
+text(mongolia_centro[, "X"], mongolia_centro[, "Y"], labels = "Mongolia", cex = 2, col = "#EAEAEA")
+text(russia_centro[, "X"], russia_centro[, "Y"], labels = "Russia", cex = 2, col = "#EAEAEA")
+legend("topleft", legend = c("Ming 1433", "Current borders"), col = c("#FDE4AA", "#3056FF"),
+	pch = c(15, NA), lwd = c(NA, 4), lty = c(NA, "solid"), pt.cex = 6, cex = 2, box.lty = 0,
+	text.col = "#EAEAEA")
+dev.off()
+
+# Low contrast, pdf
+pdf("./MingDynasty_lowContrast.pdf", width = 12, height = 12)
+par(mar = c(5.1, 4.1, 6.1, 2.1), bg = "#121212", col.main = "#EAEAEA", col.lab = "#EAEAEA")
+plot(0, pch = "", xlim = c(lonMin, lonMax), ylim = c(latMin, latMax), axes = FALSE,
+	xlab = "https://worldmap.harvard.edu/data/geonode:_ming_crossed_kjs",
+	ylab = "", main = "Ming Dynasty (1368-1644)", cex.main = 4, cex.lab = 2)
+
+# Borderlines
+plot(ming_1433, col = "#FDE4AA", border = 0, add = TRUE)
+plot(currentChina, col = NA, border = "#3056FF", lwd = 4, add = TRUE)
+plot(korea_north, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(korea_south, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(mongolia, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+plot(russia, col = NA, border = "#3056FF", lwd = 1, add = TRUE)
+
+# Text
+points(116.383331, y = 39.916668, pch = 15)
+points(118.766670, y = 32.049999, pch = 15)
+text(116.383331, y = 39.916668, labels = "Beijing", pos = 2, cex = 2)
+text(118.766670, y = 32.049999, labels = "Nanjing", pos = 2, cex = 2)
+text(currentChina_centro[, "X"], currentChina_centro[, "Y"], labels = "China", cex = 2)
+text(korea_north_centro[, "X"], korea_north_centro[, "Y"], labels = "N. Korea", cex = 2, pos = 4, offset = 2, col = "#EAEAEA")
+text(korea_south_centro[, "X"], korea_south_centro[, "Y"], labels = "S. Korea", cex = 2, pos = 4, offset = 2, col = "#EAEAEA")
+text(mongolia_centro[, "X"], mongolia_centro[, "Y"], labels = "Mongolia", cex = 2, col = "#EAEAEA")
+text(russia_centro[, "X"], russia_centro[, "Y"], labels = "Russia", cex = 2, col = "#EAEAEA")
+legend("topleft", legend = c("Ming 1433", "Current borders"), col = c("#FDE4AA", "#3056FF"),
+	pch = c(15, NA), lwd = c(NA, 4), lty = c(NA, "solid"), pt.cex = 6, cex = 2, box.lty = 0,
+	text.col = "#EAEAEA")
 dev.off()
